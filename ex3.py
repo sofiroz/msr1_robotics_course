@@ -5,7 +5,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-#import bresenham as bh
+import bresenham as bh
+from typing import List
+
 
 def plot_gridmap(gridmap):
     gridmap = np.array(gridmap, dtype=np.float64)
@@ -14,7 +16,7 @@ def plot_gridmap(gridmap):
     
 def init_gridmap(size, res):
     gridmap = np.zeros([int(np.ceil(size/res)), int(np.ceil(size/res))])
-    return gridmap
+    return gridmap + 0.50
 
 def world2map(pose, gridmap, map_res):
     origin = np.array(gridmap.shape)/2
@@ -37,7 +39,9 @@ def ranges2points(ranges):
     # rays within range
     num_beams = ranges.shape[0]
     idx = (ranges < max_range) & (ranges > 0)
+    print(idx)
     # 2D points
+    print(np.linspace(start_angle, start_angle + (num_beams*angular_res), num_beams))
     angles = np.linspace(start_angle, start_angle + (num_beams*angular_res), num_beams)[idx]
     points = np.array([np.multiply(ranges[idx], np.cos(angles)), np.multiply(ranges[idx], np.sin(angles))])
     # homogeneous points
@@ -59,52 +63,26 @@ def poses2cells(w_pose, gridmap, map_res):
     m_pose = world2map(w_pose, gridmap, map_res)
     return m_pose  
 
-def bresenham(x0, y0, x1, y1):
+def bresenham(x0: int, y0: int, x1: int, y1: int) -> bh.bresenham:
     l = np.array(list(bh.bresenham(x0, y0, x1, y1)))
     return l
     
-def prob2logodds(prob):
+def prob2logodds(prob: float) -> float:
     return np.log(prob / (1 - prob))
     
-def logodds2prob(log):
+def logodds2prob(log: float) -> float:
     return 1 / (1 + np.exp(-log))
     
-def inv_sensor_model(gridmap, cell, endpoint, prob_occ, prob_free):
+def inv_sensor_model(gridmap: np.array, cell: List[int], endpoint: List[int], prob_occ: float, prob_free:float) -> np.array:
     line = list(bresenham(cell[0], cell[1], endpoint[0], endpoint[1]))
     line.pop()
-    gridmap.at(endpoint[0], endpoint[1]) *= prorb_occ
+    gridmap[endpoint[0], endpoint[1]] *= prob_occ 
     
     for lcell in line:
-        gridmap.at(lcell[0], lcell[1]) *= prob_free
+        gridmap[lcell[0], lcell[1]] *= prob_free
         
     return gridmap
      
-    
 
-def grid_mapping_with_known_poses(ranges_raw, poses_raw, occ_gridmap, map_res, prob_occ, prob_free, prior):
-    # Known Poses for the grid mapping
-    poses = poses2cells(poses_raw, occ_gridmap, map_res)
-
-    # Converting cell value to the log value
-    occ_gridmap = prob2logodds(occ_gridmap)
-
-    # Given Sensor range value for every pose
-    for i in range(poses.shape[0]):
-        ranges = ranges2cells(ranges_raw[i], poses_raw[i], occ_gridmap, map_res).transpose()
-
-        # update the probability within the senor range.
-        for j in range(ranges.shape[0]):
-            inv_sensor_val = inv_sensor_model(poses[i], ranges[j], prob_occ, prob_free)
-
-            # Update the cell
-            for k in range(len(inv_sensor_val)):
-                cell = np.array([[int(inv_sensor_val[k][0]), int(inv_sensor_val[k][1])]])
-
-                # update the grid map by converting probiblity output from the sensor to logvalue and add it to grid value.
-                occ_gridmap[cell[0][0]][cell[0][1]] = occ_gridmap[cell[0][0]][cell[0][1]] + prob2logodds(
-                    inv_sensor_val[k][2]) - prob2logodds(prior)
-
-    # The cell value are converted back probability.
-    occ_gridmap = logodds2prob(occ_gridmap)
-
-    return occ_gridmap
+def grid_mapping_with_known_poses(gridmap, cell_poses, line_ranges):
+    pass
