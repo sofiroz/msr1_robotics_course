@@ -38,41 +38,25 @@ def prob(query, std):
 
 def motion_model_odometry(x_init,x_query,u_t,alpha,gridmap = True):
     # As we are giving position and not the pose the value of p3 = 1
+
+    rot1,trans, rot2 = inv_motion_model(u_t)
+
+    rot1_hat, trans_hat , rot2_hat = inv_motion_model([x_init,x_query])
+
+    p1 = prob(rot1 - rot1_hat,alpha[0]* abs(rot1)+ alpha[1]*trans)
+    p2 = prob(trans - trans_hat,alpha[2]*trans + alpha[3] * (abs(rot1)+ abs(rot2)))
+    p3 = prob(rot2-rot2_hat, alpha[0] * abs(rot2)  + alpha[1] * trans)
+
     if gridmap == True:
-
-        rot1,trans, rot2 = inv_motion_model(u_t)
-
-        rot1_hat, trans_hat , rot2_hat = inv_motion_model([x_init,x_query])
-
-        p1 = prob(rot1 - rot1_hat,alpha[0]* abs(rot1)+ alpha[1]*trans)
-        p2 = prob(trans - trans_hat,alpha[2]*trans + alpha[3] * (abs(rot1)+ abs(rot2)))
-        p3 = 1
-
-    else:
-        rot1,trans, rot2 = inv_motion_model(u_t)
-
-        rot1_hat, trans_hat , rot2_hat = inv_motion_model([x_init,x_query])
-
-        p1 = prob(rot1 - rot1_hat,alpha[0]* abs(rot1)+ alpha[1]*trans)
-        p2 = prob(trans - trans_hat,alpha[2]*trans + alpha[3] * (abs(rot1)+ abs(rot2)))
-        p3 = prob(rot2-rot2_hat, alpha[0] * abs(rot2)  + alpha[1] * trans)
+        return p1*p2
 
     return p1*p2*p3
+    
 
 
 def sample_distribution(std):
-    return ((math.sqrt(6)/2)*(np.random.uniform(-std,std)+np.random.uniform(-std,std)))
+    pass
 
 
 def sample_motion_model(x_init,u_t,alpha):
-    rot1, trans, rot2 = inv_motion_model(u_t)
-
-    rot1_hat = rot1 + sample_distribution(alpha[0]* abs(rot1)+ alpha[1]*trans)
-    trans_hat = trans + sample_distribution(alpha[2]*trans + alpha[3] * (abs(rot1)+ abs(rot2)))
-    rot2_hat  = rot2 + sample_distribution(alpha[0] * abs(rot2)  + alpha[1] * trans)
-
-    x_new = x_init[0] + trans_hat * np.cos(x_init[2]+rot1_hat)
-    y_new = x_init[1] + trans_hat * np.sin(x_init[2]+rot1_hat)
-    theta_new = x_init[2] + rot1_hat + rot2_hat
-
-    return x_new,y_new,theta_new
+    pass
